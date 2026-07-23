@@ -1,0 +1,16 @@
+{
+  "name": "Black Flag Board Games",
+  "short_name": "BF Navigator",
+  "description": "Move advisor for the Checkers, Fanorona and Nine Men's Morris minigames in Assassin's Creed IV: Black Flag.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#1c130a",
+  "theme_color": "#1c130a",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
