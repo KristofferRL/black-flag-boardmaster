@@ -1,6 +1,6 @@
 {
-  "name": "Black Flag Board Games",
-  "short_name": "BF Navigator",
+  "name": "Black Flag Boardmaster",
+  "short_name": "Boardmaster",
   "description": "Move advisor for the Checkers, Fanorona and Nine Men's Morris minigames in Assassin's Creed IV: Black Flag.",
   "start_url": "./",
   "scope": "./",

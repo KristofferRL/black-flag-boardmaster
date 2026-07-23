@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Black Flag Board Games — Navigator</title>
+<title>Black Flag Boardmaster – Minigame Solver</title>
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#1c130a">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="BF Navigator">
+<meta name="apple-mobile-web-app-title" content="Boardmaster">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -313,9 +313,9 @@
   <header class="masthead">
     <button class="backbtn" id="backBtn" onclick="showMenu()" aria-label="Back to games">‹</button>
     <div class="eyebrow">Assassin's Creed · Black Flag</div>
-    <h1 id="appTitle">Navigator</h1>
+    <h1 id="appTitle">Black Flag Boardmaster</h1>
     <div class="hrule"></div>
-    <p class="intro">Use this navigator to win Checkers, Fanorona and Nine Men's Morris and unlock the <b>Grandmaster</b> trophy or achievement. The locations below lead to the easiest opponents.</p>
+    <p class="intro">Use this tool to win Checkers, Fanorona and Nine Men's Morris and unlock the <b>Grandmaster</b> trophy or achievement. The locations below lead to the easiest opponents.</p>
   </header>
 
   <!-- ===== MENU ===== -->
@@ -960,7 +960,7 @@ function setScreen(name){
   document.getElementById('checkersScreen').style.display = name==='checkers'?'':'none';
   document.getElementById('fanoronaScreen').style.display = name==='fanorona'?'':'none';
   document.getElementById('morrisScreen').style.display = name==='morris'?'':'none';
-  document.getElementById('appTitle').textContent = {menu:'Navigator',checkers:'Checkers',fanorona:'Fanorona',morris:"Nine Men's Morris"}[name];
+  document.getElementById('appTitle').textContent = {menu:'Black Flag Boardmaster',checkers:'Checkers',fanorona:'Fanorona',morris:"Nine Men's Morris"}[name];
   window.scrollTo(0,0);
 }
 function showMenu(){ setScreen('menu'); }

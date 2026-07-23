@@ -3,7 +3,7 @@
  * cache that doesn't match the current version is deleted on activate,
  * so a new release cleanly replaces the old one and users are never
  * left stuck on a stale build. */
-const VERSION = 'v1.0.0';
+const VERSION = 'v1.1.0';
 const CACHE = `bfbg-${VERSION}`;
 
 /* Everything the app needs to run offline. The HTML has all JS/CSS
