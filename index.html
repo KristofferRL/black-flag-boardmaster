@@ -210,6 +210,7 @@
   .log-empty{color:var(--parch-dim);font-style:italic;font-family:'EB Garamond',serif;font-size:14px}
 
   .foot{text-align:center;margin-top:32px;color:var(--parch-dim);font-size:14px;font-style:italic}
+  .foot-credit{display:inline-block;margin-top:4px;font-size:12px;opacity:.75}
   a{color:var(--brass)}
 
   /* header back button + tag visibility */
@@ -275,11 +276,20 @@
   .phase{font-family:'Space Mono',monospace;font-size:12px;letter-spacing:.12em;text-transform:uppercase;
     color:var(--brass);opacity:.85;margin:2px 0 12px}
 
-  .choice{display:flex;gap:8px;margin-top:12px}
+  .choice{display:flex;flex-direction:column;gap:8px;margin-top:12px}
   .choice:empty{display:none}
-  .choice button{flex:1;font-family:'EB Garamond',serif;font-size:15px;color:var(--parch);
-    background:#181109;border:1px solid var(--rust);border-radius:8px;padding:10px 8px;cursor:pointer}
-  .choice button:hover{background:#241009;color:var(--brass-bright)}
+  .choice-label{font-family:'EB Garamond',serif;font-size:13.5px;font-style:italic;color:var(--parch-dim)}
+  .choice-row{display:flex;gap:8px}
+  .choice-row button{flex:1;font-family:'EB Garamond',serif;font-size:15px;color:var(--parch);
+    background:#181109;border:1px solid var(--rust);border-radius:8px;padding:10px 8px;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;gap:8px;text-align:center;
+    animation:choicePulse 1.7s ease-in-out infinite}
+  .choice-row button:hover{background:#241009;color:var(--brass-bright)}
+  .choice-row .swatch{width:11px;height:11px;border-radius:50%;flex:0 0 auto;box-shadow:0 0 0 1px rgba(0,0,0,.45)}
+  @keyframes choicePulse{
+    0%,100%{box-shadow:0 0 0 0 rgba(230,200,120,0)}
+    50%{box-shadow:0 0 9px 1px rgba(230,200,120,.32)}
+  }
 </style>
 </head>
 <body>
@@ -514,7 +524,7 @@
   </div>
   </section>
 
-  <div class="foot">Built to help unlock the Grandmaster trophy or achievement.</div>
+  <div class="foot">Built to help unlock the Grandmaster trophy or achievement.<br><span class="foot-credit">Made with Claude, supervised by Kristoffer Röine Larsson</span></div>
 </div>
 
 <script>
@@ -1110,9 +1120,11 @@ function pickMorris(){ setScreen('morris'); window.Morris.reset(); }
     for(let r=0;r<R;r++){ const rk=String(R-r); parts.push(lab(-0.72,r,rk)); parts.push(lab(8.72,r,rk)); }
 
     // choose ONE highlight mode to keep the board readable
-    let sel=null, destList=[], chainSet=new Set(), sug=null, mustSet=new Set(), moveSet=new Set();
+    let sel=null, destList=[], chainSet=new Set(), sug=null, mustSet=new Set(), moveSet=new Set(), pendingOpts=null, involvedPending=null;
     if(!preview && !FS.result){
-      if(FS.sel){ sel=FS.sel.join(','); FS.chain.forEach(p=>chainSet.add(p.join(','))); destList=FS.stepDests; }
+      if(FS.pending){ sel=FS.sel.join(','); FS.chain.forEach(p=>chainSet.add(p.join(','))); pendingOpts=FS.pending.options;
+        involvedPending=new Set([sel]); pendingOpts.forEach(o=>o.caps.forEach(p=>involvedPending.add(p.join(',')))); }
+      else if(FS.sel){ sel=FS.sel.join(','); FS.chain.forEach(p=>chainSet.add(p.join(','))); destList=FS.stepDests; }
       else if(FS.turn===FS.you && FS.suggestion && !FS.thinking){ sug=FS.suggestion; }
       else { const side=FS.turn, forced=hasCap(FS.b,side);
         for(let r=0;r<R;r++)for(let c=0;c<C;c++){const p=FS.b[r][c];
@@ -1126,7 +1138,7 @@ function pickMorris(){ setScreen('morris'); window.Morris.reset(); }
 
     // pieces (dim the uninvolved ones while a recommendation is shown)
     for(let r=0;r<R;r++)for(let c=0;c<C;c++){ const p=bd[r][c]; if(!p) continue;
-      const[dr,dc]=fdisp(r,c); const key=r+','+c; const dim=sug && !involved.has(key);
+      const[dr,dc]=fdisp(r,c); const key=r+','+c; const dim=(sug && !involved.has(key)) || (pendingOpts && !involvedPending.has(key));
       parts.push('<circle cx="'+dc+'" cy="'+dr+'" r="0.4" fill="url(#'+(p.s==='L'?'fiv':'feb')+')" stroke="'+(p.s==='L'?'#8a6a28':'#c6a34e')+'" stroke-width="0.045"'+(dim?' opacity="0.3"':'')+'/>');
       if(key===sel) parts.push(ring(dc,dr,.47,'#e9cd7c',.08));
       else if(chainSet.has(key)) parts.push(ring(dc,dr,.47,'#c6a34e',.06));
@@ -1134,6 +1146,13 @@ function pickMorris(){ setScreen('morris'); window.Morris.reset(); }
       else if(moveSet.has(key)) parts.push(ring(dc,dr,.47,'rgba(232,204,124,.75)',.05));
       if(sug){ if(key===startKey) parts.push(ring(dc,dr,.5,'#f2d78a',.09));
         if(capKeys.has(key)){ parts.push(ring(dc,dr,.5,'#e0512f',.085)); parts.push(exmark(dc,dr)); } }
+    }
+    // pending choice: show both possible outcomes at once, colour-matched to the buttons
+    if(pendingOpts){
+      const land=pendingOpts[0].B; const[ldr,ldc]=fdisp(land[0],land[1]);
+      parts.push(ring(ldc,ldr,.5,'#f2d78a',.07));
+      pendingOpts.forEach((o,i)=>{ const col=CHOICE_COLORS[i%2];
+        o.caps.forEach(p=>{ const[dr,dc]=fdisp(p[0],p[1]); parts.push(ring(dc,dr,.46,col,.09)); parts.push(exmark(dc,dr,col)); }); });
     }
     // recommendation: bold solid arrow + landing target
     if(sug){ const pts=sug.path.map(p=>{const[dr,dc]=fdisp(p[0],p[1]);return dc+','+dr;}).join(' ');
@@ -1153,7 +1172,7 @@ function pickMorris(){ setScreen('morris'); window.Morris.reset(); }
     function ln(x1,y1,x2,y2,col,w,op){ return '<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" stroke="'+col+'" stroke-width="'+w+'" opacity="'+op+'"/>'; }
     function ring(x,y,rr,col,w){ return '<circle cx="'+x+'" cy="'+y+'" r="'+rr+'" fill="none" stroke="'+col+'" stroke-width="'+w+'"/>'; }
     function lab(x,y,s){ return '<text x="'+x+'" y="'+y+'" font-size="0.48" fill="#dcc07a" font-family="Space Mono,Courier New,monospace" text-anchor="middle" dominant-baseline="central" opacity="0.92">'+s+'</text>'; }
-    function exmark(x,y){ const d=0.14; return '<path d="M'+(x-d)+','+(y-d)+' L'+(x+d)+','+(y+d)+' M'+(x+d)+','+(y-d)+' L'+(x-d)+','+(y+d)+'" stroke="#f06a44" stroke-width="0.09" stroke-linecap="round"/>'; }
+    function exmark(x,y,col){ const d=0.14; return '<path d="M'+(x-d)+','+(y-d)+' L'+(x+d)+','+(y+d)+' M'+(x+d)+','+(y-d)+' L'+(x-d)+','+(y+d)+'" stroke="'+(col||'#f06a44')+'" stroke-width="0.09" stroke-linecap="round"/>'; }
   }
 
   function setHintF(t){ $('fHint').textContent=t; }
@@ -1174,6 +1193,14 @@ function pickMorris(){ setScreen('morris'); window.Morris.reset(); }
       $('fOrdersNote').textContent=''; $('fPlayBest').disabled=true; setHintF(''); return;
     }
     $('fPlayBest').disabled = !(FS.turn===FS.you && FS.suggestion && !FS.sel);
+    if(FS.pending){
+      $('fTurnText').textContent = FS.turn===FS.you ? 'Choose the capture direction' : "Confirm the opponent's capture";
+      $('fOrdersMove').textContent = 'Two directions possible';
+      $('fOrdersNote').textContent = '';
+      $('fPlayBest').disabled = true;
+      setHintF('Two capture directions are possible — matching colours on the board show what each button takes.');
+      return;
+    }
     if(FS.sel){
       $('fTurnText').textContent = FS.inChain?'Chain in progress':'Piece selected';
       $('fOrdersMove').textContent = FS.turn===FS.you?'Your move':'Opponent\'s move';
@@ -1196,11 +1223,12 @@ function pickMorris(){ setScreen('morris'); window.Morris.reset(); }
   }
   function renderLogF(){
     const ul=$('fLogList'); const L=FS.moveLog;
-    if(!L.length){ ul.innerHTML='<li class="log-empty">No moves yet.</li>'; $('fLogToggle').style.display='none'; return; }
+    if(!L.length){ ul.innerHTML='<li class="log-empty">No moves yet.</li>'; $('fLogToggle').style.display='none'; ul.classList.remove('open'); return; }
     $('fLogToggle').style.display = L.length>2?'':'none';
-    $('fLogToggle').textContent = FS.showLog?'Hide full log ▴':'Show full log ▾';
+    $('fLogToggle').textContent = FS.showLog?'Hide full log ▴':`Show full log (${L.length}) ▾`;
     const rows = FS.showLog?L:L.slice(-2);
-    ul.innerHTML = rows.map(m=>'<li><span class="ln">'+m.n+'.</span> <span class="disc '+(m.ivory?'iv':'eb')+'"></span> '+m.who+': '+m.text+'</li>').join('');
+    ul.innerHTML = rows.map(m=>'<li><span class="n">'+m.n+'.</span><span class="who '+(m.ivory?'iv':'eb')+'"></span>'+m.who+': '+m.text+'</li>').join('');
+    ul.classList.toggle('open', FS.showLog);
   }
 
   function afterTurnF(){
@@ -1240,11 +1268,16 @@ function pickMorris(){ setScreen('morris'); window.Morris.reset(); }
     if(matches.length===1) commitStep(matches[0]);
     else { FS.pending={options:matches}; renderChoice(); }
   }
+  const CHOICE_COLORS=['#5b8fc7','#c46bd1']; // ahead / behind — distinct from every other board colour
   function renderChoice(){
     const box=$('fChoice');
-    box.innerHTML=FS.pending.options.map((o,i)=>'<button data-i="'+i+'">'+(o.type==='approach'?'Approach':'Withdraw')+' — take '+o.caps.length+'</button>').join('');
+    const wordFor=o=> o.type==='approach' ? 'Ahead' : 'Behind';
+    box.innerHTML = '<div class="choice-label">This capture can go two directions — the board shows both. Pick which one happened.</div>'
+      + '<div class="choice-row">' + FS.pending.options.map((o,i)=>
+          '<button data-i="'+i+'"><span class="swatch" style="background:'+CHOICE_COLORS[i%2]+'"></span>'
+          + wordFor(o)+' — take '+o.caps.map(p=>fname(p[0],p[1])).join(', ')+'</button>').join('') + '</div>';
     [...box.querySelectorAll('button')].forEach(btn=>btn.onclick=()=>{ const o=FS.pending.options[+btn.dataset.i]; FS.pending=null; box.innerHTML=''; commitStep(o); });
-    setHintF('Two captures are possible from here — choose Approach or Withdraw.');
+    renderF();
   }
   function commitStep(step){
     const side=FS.turn;
@@ -1359,7 +1392,11 @@ function pickMorris(){ setScreen('morris'); window.Morris.reset(); }
   function posKeyM(st){ return st.b.map(x=>x||'.').join('')+st.turn+st.placed.L+st.placed.D; }
   function evalFor(st,s){ const foe=oppM(s);
     const mat=(cnt(st.b,s)+(9-st.placed[s]))-(cnt(st.b,foe)+(9-st.placed[foe]));
-    return 100*mat + 26*(millCnt(st.b,s)-millCnt(st.b,foe)) + 12*(twoConf(st.b,s)-twoConf(st.b,foe)) + 4*(mob(st,s)-mob(st,foe)); }
+    const mS=mob(st,s), mF=mob(st,foe);
+    // steep penalty for being one or zero moves from getting boxed in
+    const dangerS = mS<=1 ? (2-mS)*45 : 0;
+    const dangerF = mF<=1 ? (2-mF)*45 : 0;
+    return 100*mat + 26*(millCnt(st.b,s)-millCnt(st.b,foe)) + 12*(twoConf(st.b,s)-twoConf(st.b,foe)) + 16*(mS-mF) - dangerS + dangerF; }
   function nega(st,depth,alpha,beta,dl,path){
     const key=posKeyM(st); if(path.has(key)) return st.turn===ROOTM?-CONTEMPTM:CONTEMPTM;
     if(lossMover(st)) return -100000-depth;
@@ -1373,10 +1410,10 @@ function pickMorris(){ setScreen('morris'); window.Morris.reset(); }
   }
   function bestM(st){
     const moves=genM(st); if(!moves.length)return null; if(moves.length===1)return moves[0];
-    ROOTM=st.turn; const dl=performance.now()+1500;
+    ROOTM=st.turn; const dl=performance.now()+2500;
     const seen=new Set(MS&&MS.posLog?MS.posLog:[]); seen.add(posKeyM(st));
     let ch=moves[0];
-    for(let d=2;d<=16;d++){ let lb=-1e9,lm=ch,al=-1e9,ok=true;
+    for(let d=2;d<=22;d++){ let lb=-1e9,lm=ch,al=-1e9,ok=true;
       moves.sort((a,b)=>(b.rem>=0?1:0)-(a.rem>=0?1:0));
       for(const m of moves){ if(performance.now()>dl){ok=false;break;}
         const v=-nega(applyM(st,m),d-1,-1e9,-al,dl,seen); if(v>lb){lb=v;lm=m;} if(v>al)al=v; }
@@ -1486,11 +1523,12 @@ function pickMorris(){ setScreen('morris'); window.Morris.reset(); }
   }
   function renderLogM(){
     const ul=$('mLogList'), L=MS.moveLog;
-    if(!L.length){ ul.innerHTML='<li class="log-empty">No moves yet.</li>'; $('mLogToggle').style.display='none'; return; }
+    if(!L.length){ ul.innerHTML='<li class="log-empty">No moves yet.</li>'; $('mLogToggle').style.display='none'; ul.classList.remove('open'); return; }
     $('mLogToggle').style.display=L.length>2?'':'none';
-    $('mLogToggle').textContent=MS.showLog?'Hide full log ▴':'Show full log ▾';
+    $('mLogToggle').textContent=MS.showLog?'Hide full log ▴':`Show full log (${L.length}) ▾`;
     const rows=MS.showLog?L:L.slice(-2);
-    ul.innerHTML=rows.map(m=>'<li><span class="ln">'+m.n+'.</span> <span class="disc '+(m.ivory?'iv':'eb')+'"></span> '+m.who+': '+m.text+'</li>').join('');
+    ul.innerHTML=rows.map(m=>'<li><span class="n">'+m.n+'.</span><span class="who '+(m.ivory?'iv':'eb')+'"></span>'+m.who+': '+m.text+'</li>').join('');
+    ul.classList.toggle('open', MS.showLog);
   }
 
   function afterTurnM(){ renderM();
