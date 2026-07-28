@@ -182,6 +182,7 @@
     border-radius:8px;padding:7px 14px;cursor:pointer}
   .invert-btn:hover{border-color:var(--brass);color:var(--brass-bright)}
   .invert-btn[aria-pressed="true"]{border-color:var(--brass);color:var(--brass-bright);background:rgba(198,163,78,.08)}
+  .invert-btn:disabled{opacity:.4;cursor:not-allowed}
   .invert-note{max-width:360px;margin:6px auto 0;text-align:center;font-size:12px;color:var(--parch-dim);
     opacity:.8;line-height:1.4}
 
@@ -384,8 +385,11 @@
       </div>
     </div>
 
-    <button class="invert-btn" id="invertBtn" aria-pressed="false">⇄ Invert board colours</button>
-    <div class="invert-note">If your in-game board has light and dark squares swapped from this, tap this to match it. Purely cosmetic — moves and rules are unaffected.</div>
+    <button class="invert-btn" id="invertBtn" aria-pressed="false">⇄ Invert board</button>
+    <div class="invert-note" id="invertNote">If your in-game board starts with pieces on different squares than this, tap this to match it. Takes effect on your next match — it can't safely change the pieces mid-game.</div>
+
+    <button class="invert-btn" id="invertColorsBtn" aria-pressed="false">⇄ Invert colours</button>
+    <div class="invert-note">Purely cosmetic — swaps which squares look light or dark, without moving any pieces. Safe to change anytime, even mid-match.</div>
 
     <!-- CONTROLS -->
     <div>
@@ -555,8 +559,9 @@ const clone  = b => b.map(row => row.map(p => p ? {s:p.s,k:p.k} : null));
 
 function initBoard(){
   const b = Array.from({length:8},()=>Array(8).fill(null));
+  const parity = INVERT_BOARD ? 1 : 0;        // which squares pieces sit on; INVERT_BOARD picks the other colour
   for(let r=0;r<8;r++) for(let c=0;c<8;c++){
-    if((r+c)%2!==0) continue;                 // pieces on even squares (A1 light rule)
+    if((r+c)%2!==parity) continue;            // default (parity 0): pieces on even squares (A1 light rule)
     if(r<3) b[r][c] = {s:'t',k:false};
     else if(r>4) b[r][c] = {s:'b',k:false};
   }
@@ -706,6 +711,8 @@ let S=null;
 let SEL={ first:'you' };
 let INVERT_BOARD=false;
 try{ INVERT_BOARD = localStorage.getItem('bfbg-invert-board')==='1'; }catch(e){}
+let INVERT_COLORS=false;
+try{ INVERT_COLORS = localStorage.getItem('bfbg-invert-colors')==='1'; }catch(e){}
 const $ = id => document.getElementById(id);
 const boardEl=$('board'), arrowsEl=$('arrows');
 
@@ -732,10 +739,20 @@ $('newBtn').addEventListener('click', ()=>{ document.body.classList.remove('play
 $('undoBtn').addEventListener('click', undo);
 $('playBestBtn').addEventListener('click', ()=>{ if(S&&S.suggestion&&!S.result) makeMove(S.suggestion); });
 $('logToggle').addEventListener('click', ()=>{ S.showLog=!S.showLog; renderLog(); });
+/* "Invert board" moves which squares the pieces sit on, so it can only change
+   between matches — locked (and disabled) while a game is in progress. */
+function unlockInvertToggle(){ const b=$('invertBtn'); if(b) b.disabled=false; }
 $('invertBtn').addEventListener('click', ()=>{
+  if(S) return;                       // locked mid-match — only affects the next match's layout
   INVERT_BOARD=!INVERT_BOARD;
   try{ localStorage.setItem('bfbg-invert-board', INVERT_BOARD?'1':'0'); }catch(e){}
   $('invertBtn').setAttribute('aria-pressed', INVERT_BOARD?'true':'false');
+  previewCheckers();
+});
+$('invertColorsBtn').addEventListener('click', ()=>{
+  INVERT_COLORS=!INVERT_COLORS;
+  try{ localStorage.setItem('bfbg-invert-colors', INVERT_COLORS?'1':'0'); }catch(e){}
+  $('invertColorsBtn').setAttribute('aria-pressed', INVERT_COLORS?'true':'false');
   if(S){ buildGrid(); buildCoords(); render(); } else { previewCheckers(); }
 });
 
@@ -750,6 +767,7 @@ function startMatch(){
   };
   S.posLog = [posKey(S.b, S.turn)];
   document.body.classList.add('playing');
+  $('invertBtn').disabled = true;     // board-layout toggle locks for the duration of the match
   $('setupCard').style.display='none';
   $('playCard').style.display='';
   buildGrid(); buildCoords();
@@ -761,10 +779,11 @@ function startMatch(){
 let cells=[];
 function buildGrid(){
   boardEl.innerHTML=''; cells=[];
+  const startParity = INVERT_BOARD ? 1 : 0;
   for(let dr=0;dr<8;dr++){ cells[dr]=[]; for(let dc=0;dc<8;dc++){
     const d=document.createElement('div');
-    const playable=(dr+dc)%2===0;                    // game logic — never changes, this is where pieces live
-    const visualDark = INVERT_BOARD ? !playable : playable;  // cosmetic only
+    const playable=(dr+dc)%2===startParity;               // wherever pieces actually sit — locked mid-match
+    const visualDark = INVERT_COLORS ? !playable : playable;  // paint only — safe to flip anytime
     d.className='sq '+(visualDark?'dark':'light');
     if(playable) d.addEventListener('click',()=>{ const [ir,ic]=toInt(dr,dc); onCell(ir,ic); });
     boardEl.appendChild(d); cells[dr][dc]=d;
@@ -790,6 +809,7 @@ function pieceHTML(p){
 
 /* setup preview: show the real starting position (oriented to current first-mover) */
 function previewCheckers(){
+  unlockInvertToggle();               // no match in progress — board layout can change again
   buildGrid(); buildCoords();
   const b=initBoard(); const flip = SEL.first==='you';
   for(let r=0;r<8;r++) for(let c=0;c<8;c++){ const p=b[r][c]; if(!p) continue;
@@ -980,6 +1000,7 @@ function undo(){
   if(S.turn===S.you) afterTurnChange();
 }
 $('invertBtn').setAttribute('aria-pressed', INVERT_BOARD?'true':'false');
+$('invertColorsBtn').setAttribute('aria-pressed', INVERT_COLORS?'true':'false');
 previewCheckers();
 </script>
 
