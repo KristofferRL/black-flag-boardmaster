@@ -177,6 +177,14 @@
   .btnrow{display:flex;gap:8px;margin-top:8px}
   .btnrow .btn{padding:11px}
 
+  .invert-btn{display:block;margin:10px auto 0;font-family:'Space Mono',monospace;font-size:12px;
+    letter-spacing:.06em;color:var(--parch-dim);background:transparent;border:1px solid #4d3620;
+    border-radius:8px;padding:7px 14px;cursor:pointer}
+  .invert-btn:hover{border-color:var(--brass);color:var(--brass-bright)}
+  .invert-btn[aria-pressed="true"]{border-color:var(--brass);color:var(--brass-bright);background:rgba(198,163,78,.08)}
+  .invert-note{max-width:360px;margin:6px auto 0;text-align:center;font-size:12px;color:var(--parch-dim);
+    opacity:.8;line-height:1.4}
+
   .turn{display:flex;align-items:center;gap:10px;margin-bottom:12px;font-size:15px}
   .dot{width:12px;height:12px;border-radius:50%;flex:0 0 auto}
   .dot.you{background:var(--brass-bright);box-shadow:0 0 10px var(--brass)}
@@ -375,6 +383,9 @@
         <svg class="arrow-layer" id="arrows" viewBox="0 0 8 8" preserveAspectRatio="none"></svg>
       </div>
     </div>
+
+    <button class="invert-btn" id="invertBtn" aria-pressed="false">⇄ Invert board colours</button>
+    <div class="invert-note">If your in-game board has light and dark squares swapped from this, tap this to match it. Purely cosmetic — moves and rules are unaffected.</div>
 
     <!-- CONTROLS -->
     <div>
@@ -693,6 +704,8 @@ function bestMove(board,side){
    =========================================================== */
 let S=null;
 let SEL={ first:'you' };
+let INVERT_BOARD=false;
+try{ INVERT_BOARD = localStorage.getItem('bfbg-invert-board')==='1'; }catch(e){}
 const $ = id => document.getElementById(id);
 const boardEl=$('board'), arrowsEl=$('arrows');
 
@@ -719,6 +732,12 @@ $('newBtn').addEventListener('click', ()=>{ document.body.classList.remove('play
 $('undoBtn').addEventListener('click', undo);
 $('playBestBtn').addEventListener('click', ()=>{ if(S&&S.suggestion&&!S.result) makeMove(S.suggestion); });
 $('logToggle').addEventListener('click', ()=>{ S.showLog=!S.showLog; renderLog(); });
+$('invertBtn').addEventListener('click', ()=>{
+  INVERT_BOARD=!INVERT_BOARD;
+  try{ localStorage.setItem('bfbg-invert-board', INVERT_BOARD?'1':'0'); }catch(e){}
+  $('invertBtn').setAttribute('aria-pressed', INVERT_BOARD?'true':'false');
+  if(S){ buildGrid(); buildCoords(); render(); } else { previewCheckers(); }
+});
 
 function startMatch(){
   // Ivory ('t') always moves first. You are Ivory iff you move first.
@@ -744,9 +763,10 @@ function buildGrid(){
   boardEl.innerHTML=''; cells=[];
   for(let dr=0;dr<8;dr++){ cells[dr]=[]; for(let dc=0;dc<8;dc++){
     const d=document.createElement('div');
-    const dark=(dr+dc)%2===0;                       // A1 (bottom-left) light
-    d.className='sq '+(dark?'dark':'light');
-    if(dark) d.addEventListener('click',()=>{ const [ir,ic]=toInt(dr,dc); onCell(ir,ic); });
+    const playable=(dr+dc)%2===0;                    // game logic — never changes, this is where pieces live
+    const visualDark = INVERT_BOARD ? !playable : playable;  // cosmetic only
+    d.className='sq '+(visualDark?'dark':'light');
+    if(playable) d.addEventListener('click',()=>{ const [ir,ic]=toInt(dr,dc); onCell(ir,ic); });
     boardEl.appendChild(d); cells[dr][dc]=d;
   }}
 }
@@ -959,6 +979,7 @@ function undo(){
   render();
   if(S.turn===S.you) afterTurnChange();
 }
+$('invertBtn').setAttribute('aria-pressed', INVERT_BOARD?'true':'false');
 previewCheckers();
 </script>
 
